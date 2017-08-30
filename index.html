@@ -1,9 +1,249 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<title></title>
+	<meta charset="UTF-8">
+	<title>flayBird</title>
+	<style type="text/css">
+	*{margin: 0;padding: 0}
+	#wrap{width: 320px;height: 480px;background: url(img/bg.jpg) center center no-repeat;margin: 0 auto;position: relative;overflow: hidden;}
+	#main{width: 320px;height: 422px;position: relative;}
+	#line{width: 999px;position: relative;}
+	#score,#head,#menu{text-align: center; position: absolute;width: 100%;}
+	#score{top: 50px;font-size: 30px;font-weight: bold;}
+	#head{top: 130px;-webkit-animation:first 2s linear infinite;}
+	#head img{vertical-align: middle;}
+	#head span{display: inline-block;width: 40px;height: 26px;background: url(img/bird0.png) 0 0 no-repeat;-webkit-animation:second 1s linear infinite;}
+	#menu{top: 265px;}
+	#menu span{display: inline-block;width: 85px;height: 29px;background: url(img/start.jpg) 0 0 no-repeat;}
+	#bird{position: absolute;top: 200px;left: 40px;display: none;z-index: 99}
+	.pipe{width: 62px;position: absolute;background: url(img/up_mod.png) 0 0 repeat-y;left: 320px;}
+	.up_pipe img{position: absolute;bottom: 0}
+	.down_pipe{bottom: 0;background: url(img/down_mod.png) 0 0 repeat-y;} 
+	#gameover{position: absolute;width: 100%;top: 152px;display: none;z-index: 99;}
+	#rank{width: 269px;height: 135px;background: url(img/message.jpg) 0 0 no-repeat;margin: 0 auto;position: relative;}
+	#rank span{display: inline-block;width: 60px;height: 32px;font-size: 28px;color: white;font-weight: bold;text-align: right;position: absolute;}
+	#rank_score{top: 33px;left: 183px;}
+	#best{top: 83px;left: 183px;}
+	#menu2{text-align: center;margin-top: 5px;}
+	#menu2 span{display: inline-block;width: 96px;height: 33px;background: url(img/ok.jpg) 0 0 no-repeat;}
+	#audio audio{position: absolute;}
+	@-webkit-keyframes first{
+		0% {top:130px;}
+		25% {top: 120px;}
+		50% {top: 130px;}
+		75% {top: 140px;}
+		100% {top: 130px;}
+	}
+	@-webkit-keyframes second{
+		0% {background: url(img/bird0.png) 0 0 no-repeat;}
+		100% {background: url(img/bird1.png) 0 0 no-repeat;}
+	}
+	</style>
+	<script type="text/javascript">
+	window.onload=function(){
+		var oLiner=document.getElementById("line");
+		var oStart=document.getElementById("start");
+		var oHead=document.getElementById("head");
+		var oBird=document.getElementById("bird");
+		var oWrap=document.getElementById("wrap");
+		var oMain=document.getElementById("main");
+		var oScore=document.getElementById("score");
+		var oGameover=document.getElementById("gameover");
+		var oRankScore=document.getElementById("rank_score");
+		var oBest=document.getElementById("best");
+		var ok=document.getElementById("ok");
+		var oAudio=document.getElementById("audio");
+		var createPipe=null;/*生成pipe定时器*/
+		var score=0;//记录分数
+		var isStart=true;
+		// 无缝滚动
+		var lineTimer=setInterval(function(){
+			if(oLiner.offsetLeft<=-343){
+				oLiner.style.left=0;
+			}
+			oLiner.style.left=oLiner.offsetLeft-2+"px";
+		},10)
+		// 小鸟下降方法
+		function down(){
+			oBird.speed+=0.5;
+			oBird.type="down_bird";
+			if(oBird.speed>=oBird.maxSpeed){
+				oBird.speed=oBird.maxSpeed;
+			}
+			oBird.style.top=oBird.offsetTop+oBird.speed+"px";
+			// 小鸟下降边界判断
+			if(oBird.offsetTop>=oMain.clientHeight-oBird.offsetHeight){
+				clearInterval(oBird.downTimer);
+				clearInterval(oBird.srcTimer);
+				oBird.style.top=oMain.clientHeight-oBird.offsetHeight+"px";
+				gameover();
+			}
+			
+			
+		}
+		// 点击开始
+		oStart.onclick=function(e){
+			// e.stopPropagation();
+			oHead.style.display="none";
+			oStart.style.display="none";
+			oBird.style.display="block";
+			oAudio.children[0].pause();
+			// 小鸟下降
+			oBird.speed=0;
+			oBird.maxSpeed=7;
+			oBird.type="";
+			oBird.index=0;//控制小鸟图片
+			oBird.downTimer=setInterval(down,30);
+			// 小鸟上升
+			oWrap.onclick=function(){
+				clearInterval(oBird.downTimer);
+				clearInterval(oBird.upTimer);
+				oAudio.children[1].play();
+				oBird.speed=oBird.maxSpeed;
+				oBird.type="up_bird";
+				oBird.upTimer=setInterval(function(){
+					oBird.speed-=0.3;
+					if(oBird.speed<=0){
+						clearInterval(oBird.upTimer);
+						oBird.downTimer=setInterval(down,30);
+					}
+					oBird.style.top=oBird.offsetTop-oBird.speed+"px";
+				},30)
+			}
+			// 小鸟拍翅膀
+			oBird.srcTimer=setInterval(function(){
+				// 改变图片下标
+				oBird.index==0?oBird.index=1:oBird.index=0;
+				oBird.src="img/"+oBird.type+oBird.index+".png";
+			},150)
+
+			// pipe控制
+			createPipe=setInterval(function(){
+				// 生成pipe
+				var upPipe=document.createElement("div");
+				var downPipe=document.createElement("div");
+				upPipe.innerHTML='<img src="img/up_pipe.png" alt="">';
+				downPipe.innerHTML='<img src="img/down_pipe.png" alt="">';
+				upPipe.className="pipe up_pipe";
+				downPipe.className="pipe down_pipe";
+				oMain.appendChild(upPipe);
+				oMain.appendChild(downPipe);
+				// 随机高度
+				upPipe.style.height=parseInt(Math.random()*100)+80+"px";
+				downPipe.style.height=oMain.clientHeight-upPipe.offsetHeight-140+"px";
+				upPipe.addScore=true;//判断是否能够加分
+				// pipe移动
+				upPipe.moveTimer=setInterval(function(){
+					if(upPipe.offsetLeft<=-upPipe.offsetWidth){
+						oMain.removeChild(upPipe);
+						oMain.removeChild(downPipe);
+						clearInterval(upPipe.moveTimer);
+					}
+					upPipe.style.left=upPipe.offsetLeft-2+"px";
+					downPipe.style.left=downPipe.offsetLeft-2+"px";
+					// 碰撞检测
+					var l1=upPipe.offsetLeft-oBird.offsetWidth;
+					var l2=upPipe.offsetLeft+upPipe.offsetWidth;
+					var t1=upPipe.offsetHeight;
+					var t2=downPipe.offsetTop-oBird.offsetHeight;
+					var t=oBird.offsetTop;
+					var l=oBird.offsetLeft;
+					if((l>=l1&&l<=l2&&t<=t1)||(l>=l1&&l<=l2&&t>=t2)){
+						gameover();
+					}
+					// 检测加分
+					if(l>=l2&&upPipe.addScore){
+						oAudio.children[2].play();
+						score++;
+						upPipe.addScore=false;
+						oScore.innerHTML="";//每次都要清空
+						var sScore=String(score);
+						// alert(typeof sScore);
+						for(var i=0;i<sScore.length;i++){
+							var oImg=document.createElement("img");
+							oImg.src="img/"+sScore[i]+".jpg";
+							oScore.appendChild(oImg);
+						}
+					}
+
+				},30)
+			},3000)
+		}
+
+		// 判断localStoragre.score是否存在
+		if(localStorage.score==undefined){
+			localStorage.score=0;
+		}
+		// 游戏结束
+		function gameover(){
+			if(isStart){
+				isStart=false;
+				// 清定时器
+				clearInterval(createPipe);
+				clearInterval(lineTimer);
+				oAudio.children[3].play();
+				oAudio.children[4].play();
+				var aPipe=document.getElementsByClassName("up_pipe");
+				for(var i=0;i<aPipe.length;i++){
+					clearInterval(aPipe[i].moveTimer);
+				}
+				// 显示隐藏
+				oGameover.style.display="block";
+				//记录分数
+				oRankScore.innerHTML=score;
+				// alert(localStorage.score);
+				if(score>localStorage.score){
+					localStorage.score=score;
+				}
+				oBest.innerHTML=localStorage.score;
+				oWrap.onclick="";
+			}
+		
+		}
+
+		// 点击重新开始
+		ok.onclick=function(){
+			location.reload();
+		}
+
+	}
+	</script>
 </head>
 <body>
-cnm
+	<div id="wrap">
+		<div id="main">
+			<div id="score">
+				<img src="img/0.jpg" alt="">
+			</div>
+			<div id="head">
+				<img src="img/head.jpg" alt=""><span></span>
+			</div>
+			<div id="menu">
+				<span id="start"></span>
+			</div>
+			<img src="img/bird0.png" alt="" id="bird">
+			<!-- <div class="pipe up_pipe"><img src="img/up_pipe.png" alt=""></div>
+			<div class="pipe down_pipe"><img src="img/down_pipe.png" alt=""></div> -->
+			<div id="gameover">
+				<div id="rank">
+					<span id="rank_score">0</span>
+					<span id="best">0</span>
+				</div>
+				<div id="menu2">
+					<span id="ok"></span>
+				</div>
+			</div>
+		</div>
+		<div id="line">
+			<img src="img/banner.jpg" alt=""><img src="img/banner.jpg" alt="">
+		</div>
+	</div>
+	<div id="audio">
+		<audio src="Sounds/game_music.mp3" autoplay loop></audio>
+		<audio src="Sounds/Wing.wav"></audio>
+		<audio src="Sounds/Point.wav"></audio>
+		<audio src="Sounds/Hit.wav"></audio>
+		<audio src="Sounds/Die.wav"></audio>
+	</div>
 </body>
 </html>
